@@ -5,9 +5,10 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server._
 import akka.stream.Materializer
-import com.github.cupenya.gateway.client.{ AuthServiceClient, GatewayTargetClient, LoginData }
-import com.github.cupenya.gateway.configuration.{ GatewayConfiguration, GatewayConfigurationManager }
-import com.github.cupenya.gateway.{ Config, Logging }
+import com.github.cupenya.gateway.client.{AuthServiceClient, GatewayTargetClient, LoginData}
+import com.github.cupenya.gateway.configuration.{GatewayConfiguration, GatewayConfigurationManager}
+import com.github.cupenya.gateway.Config
+import com.typesafe.scalalogging.StrictLogging
 import spray.json.DefaultJsonProtocol
 
 import scala.annotation.tailrec
@@ -18,7 +19,7 @@ trait GatewayTargetDirectives extends Directives {
     pathPrefix(GatewayTargetPathMatcher(config, prefix)).flatMap(provide)
 }
 
-case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String) extends PathMatcher1[GatewayTargetClient] with Logging {
+case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String) extends PathMatcher1[GatewayTargetClient] with StrictLogging {
   import Path._
   import PathMatcher._
 
@@ -28,10 +29,10 @@ case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String
   @tailrec
   private def matchPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] = path match {
     case Empty =>
-      log.debug(s"No match found for path: $path")
+      logger.debug(s"No match found for path: $path")
       Unmatched
     case Segment(apiPrefix, tail) if apiPrefix == prefix =>
-      log.debug(s"Match found for path: $tail")
+      logger.debug(s"Match found for path: $tail")
       matchRemainingPathToGatewayTarget(tail)
     case Segment(head, tail) =>
       matchPathToGatewayTarget(tail)

@@ -1,14 +1,13 @@
 package com.github.cupenya.gateway.health
 
 import akka.http.scaladsl.model.DateTime
-import com.github.cupenya.gateway.Logging
 import com.github.cupenya.gateway.client.AuthServiceClient
 import com.github.cupenya.service.discovery.health._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 
-class AuthServiceHealthCheck(authClient: AuthServiceClient) extends HealthCheck with Logging {
+class AuthServiceHealthCheck(authClient: AuthServiceClient) extends HealthCheck {
   override def name: String = "AuthService"
 
   override def runCheck()(implicit ec: ExecutionContext): Future[HealthCheckResult] = {
@@ -20,7 +19,7 @@ class AuthServiceHealthCheck(authClient: AuthServiceClient) extends HealthCheck 
           name = name,
           status = HealthCheckStatus.Ok,
           timestamp = DateTime.now.clicks,
-          latency = Some((timeElapsedInNanos nanos).toMillis),
+          latency = Some(timeElapsedInNanos.nanos.toMillis),
           message = None
         )
       }

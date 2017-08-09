@@ -4,17 +4,18 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server.{ RequestContext, Route }
+import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
-import com.github.cupenya.gateway.{ Config, Logging }
+import akka.stream.scaladsl.{Sink, Source}
+import com.github.cupenya.gateway.{Config}
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.ExecutionContext
 
 class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
     implicit
     val system: ActorSystem, ec: ExecutionContext, materializer: Materializer
-) extends Logging {
+) extends StrictLogging {
   private val connector = Http(system).outgoingConnection(host, port)
 
   private val authClient = new AuthServiceClient(
@@ -30,14 +31,14 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
     val originalHeaders = request.headers.toList
     val filteredHeaders = (hostHeader :: originalHeaders - Host).noEmptyHeaders
     val eventualProxyResponse = if (secured) {
-      log.debug(s"Need token for request ${request.uri.path}")
+      logger.debug(s"Need token for request ${request.uri.path}")
       authClient.getToken(filteredHeaders).flatMap {
         case Right(tokenResponse) =>
-          log.debug(s"Token ${tokenResponse.jwt}")
+          logger.debug(s"Token ${tokenResponse.jwt}")
           val headersWithAuth = Authorization(OAuth2BearerToken(tokenResponse.jwt)) :: filteredHeaders
           proxyRequest(context, request, headersWithAuth)
         case Left(errorResponse) =>
-          log.warn(s"Failed to retrieve token.")
+          logger.warn(s"Failed to retrieve token.")
           context.complete(errorResponse)
       }
     } else {
@@ -46,7 +47,7 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
     eventualProxyResponse.transform(
       identity,
       t => {
-        log.error("Error while proxying request", t)
+        logger.error("Error while proxying request", t)
         t
       }
     )
@@ -57,7 +58,7 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
       uri = createProxiedUri(context, request.uri),
       headers = headers
     )
-    log.debug(s"Proxying request: $proxiedRequest")
+    logger.debug(s"Proxying request: $proxiedRequest")
     Source.single(proxiedRequest)
       .via(connector)
       .runWith(Sink.head)

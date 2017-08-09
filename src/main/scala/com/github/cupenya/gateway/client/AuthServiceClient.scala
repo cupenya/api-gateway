@@ -9,16 +9,16 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
-import com.github.cupenya.gateway.Logging
+import akka.stream.scaladsl.{Sink, Source}
+import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class AuthServiceClient(host: String, port: Int)(
     implicit
     val system: ActorSystem, ec: ExecutionContext, materializer: Materializer
-) extends DefaultJsonProtocol with SprayJsonSupport with Logging {
+) extends DefaultJsonProtocol with SprayJsonSupport with StrictLogging {
 
   implicit val jwtFormat = jsonFormat1(JwtTokenResponse)
   implicit val loginDataFormat = jsonFormat2(LoginData)
@@ -26,7 +26,7 @@ class AuthServiceClient(host: String, port: Int)(
   private lazy val client = Http(system).outgoingConnection(host, port, settings = ClientConnectionSettings(system))
 
   def getToken(headers: Seq[HttpHeader]): Future[Either[HttpResponse, JwtTokenResponse]] = {
-    log.debug(s"Getting token with headers $headers")
+    logger.debug(s"Getting token with headers $headers")
     Source
       .single(Get("/auth/token").withHeaders(headers: _*))
       .via(client)
