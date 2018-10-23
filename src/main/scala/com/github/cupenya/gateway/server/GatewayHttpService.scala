@@ -5,8 +5,8 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server._
 import akka.stream.Materializer
-import com.github.cupenya.gateway.client.{AuthServiceClient, GatewayTargetClient, LoginData}
-import com.github.cupenya.gateway.configuration.{GatewayConfiguration, GatewayConfigurationManager}
+import com.github.cupenya.gateway.client.{ AuthServiceClient, GatewayTargetClient, LoginData }
+import com.github.cupenya.gateway.configuration.{ GatewayConfiguration, GatewayConfigurationManager }
 import com.github.cupenya.gateway.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json.DefaultJsonProtocol
