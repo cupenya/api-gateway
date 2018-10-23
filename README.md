@@ -6,3 +6,4 @@ Api Gateway [![Build Status](https://travis-ci.org/jeroenr/api-gateway.svg?branc
 * Get token from auth service and add to request header
 
 
+For more information see the 4 parts articles *From Monolith to Microservice Architecture on Kubernetes* at https://medium.com/jeroen-rosenberg/from-monolith-to-microservice-architecture-on-kubernetes-part-1-the-api-gateway-eb82f8c2d10c
