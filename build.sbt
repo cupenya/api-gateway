@@ -44,7 +44,7 @@ val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replac
 
 packageName in Docker := "cpy-docker-test/" + name.value
 version in Docker     := shortCommit
-dockerBaseImage       := "airdock/oracle-jdk:jdk-1.8"
+dockerBaseImage       := "openjdk:8u162-jre"
 defaultLinuxInstallLocation in Docker := s"/opt/${name.value}" // to have consistent directory for files
 dockerRepository := Some("eu.gcr.io")
 // end docker template settings
