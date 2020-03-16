@@ -109,7 +109,7 @@ trait KubernetesServiceUpdateParser extends DefaultJsonProtocol with Logging {
         .map(_.utf8String.parseJson)
         .collect {
           case jsObj: JsObject =>
-            log.info(s"Received data: ${jsObj}")
+            log.trace(s"Received data: ${jsObj}")
             jsObj.convertTo[ServiceList]
         }
         .runWith(Sink.head)
