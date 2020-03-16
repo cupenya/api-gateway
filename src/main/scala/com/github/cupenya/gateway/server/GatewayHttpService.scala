@@ -42,10 +42,14 @@ case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String
   @tailrec
   private def matchRemainingPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] = path match {
     case Slash(tail) =>
-      logger.debug(s"Matching  additional path with  slash  ${tail}")
       matchRemainingPathToGatewayTarget(tail)
     case s @ Segment(head, _) =>
-      logger.debug(s"Matching additional path with  slash  ${head}, found ${config.targets.get(head).map(x => (x.host, x.port))}")
+      if (config.targets.get(head).isEmpty) {
+        val serviceStr = config.targets.map { case (path, target) =>
+          (path, target.host, target.port)
+        }
+        logger.debug(s"Matching additional path with segment ${head}, found none in ${serviceStr}")
+      }
       config.targets.get(head)
         .map(gatewayTarget => Matched(s, Tuple1(gatewayTarget)))
         .getOrElse(Unmatched)
