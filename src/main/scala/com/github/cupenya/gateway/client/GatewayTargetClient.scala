@@ -56,9 +56,12 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
   private def proxyRequest(context: RequestContext, request: HttpRequest, headers: List[HttpHeader]) = {
     val proxiedRequest = context.request.copy(
       uri = createProxiedUri(context, request.uri),
-      headers = headers
+      headers = headers,
+      protocol = HttpProtocols.`HTTP/1.1`
     )
+
     logger.debug(s"Proxying request: $proxiedRequest")
+
     Source.single(proxiedRequest)
       .via(connector)
       .runWith(Sink.head)
