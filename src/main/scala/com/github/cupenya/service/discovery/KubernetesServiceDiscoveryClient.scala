@@ -104,7 +104,7 @@ trait KubernetesServiceUpdateParser extends DefaultJsonProtocol with Logging {
 
   // FIXME: is this really necessary?
   implicit val toServiceListUnmarshaller: Unmarshaller[HttpEntity, ServiceList] =
-    Unmarshaller.withMaterializer { implicit ex ⇒ implicit mat ⇒ entity: HttpEntity ⇒
+    Unmarshaller.withMaterializer { implicit ex => implicit mat => entity: HttpEntity =>
       entity.dataBytes
         .map(_.utf8String.parseJson)
         .collect {

@@ -28,7 +28,7 @@ class AuthServiceClient(host: String, port: Int)(
   def getToken(headers: Seq[HttpHeader]): Future[Either[HttpResponse, JwtTokenResponse]] = {
     logger.debug(s"Getting token with headers $headers")
     Source
-      .single(Get("/auth/token").withHeaders(headers: _*))
+      .single(Get("/auth/token").withHeaders(headers))
       .via(client)
       .runWith(Sink.head)
       .flatMap { res =>
@@ -56,7 +56,7 @@ class AuthServiceClient(host: String, port: Int)(
 
   def currentUser(headers: Seq[HttpHeader]): Future[HttpResponse] = {
     Source
-      .single(Get("/auth/currentUser").withHeaders(headers: _*))
+      .single(Get("/auth/currentUser").withHeaders(headers))
       .via(client)
       .runWith(Sink.head)
   }

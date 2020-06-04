@@ -45,8 +45,9 @@ case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String
       matchRemainingPathToGatewayTarget(tail)
     case s @ Segment(head, _) =>
       if (config.targets.get(head).isEmpty) {
-        val serviceStr = config.targets.map { case (path, target) =>
-          (path, target.host, target.port)
+        val serviceStr = config.targets.map {
+          case (path, target) =>
+            (path, target.host, target.port)
         }
         logger.debug(s"Matching additional path with segment ${head}, found none in ${serviceStr}")
       }

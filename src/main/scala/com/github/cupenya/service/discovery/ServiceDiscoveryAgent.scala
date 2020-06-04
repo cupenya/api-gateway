@@ -46,9 +46,8 @@ class ServiceDiscoveryAgent[T <: ServiceUpdate](serviceDiscoverySource: ServiceD
 
   def watchServices(): Unit = {
     system.scheduler.schedule(SERVICE_POLLING_INTERVAL seconds, 5 seconds) {
-      serviceDiscoverySource.listServices.map(handleServiceUpdates).onFailure {
-        case t =>
-          log.error(s"Couldn't list services: ${t.getMessage}", t)
+      serviceDiscoverySource.listServices.map(handleServiceUpdates).failed.foreach { t =>
+        log.error(s"Couldn't list services: ${t.getMessage}", t)
       }
     }
   }
