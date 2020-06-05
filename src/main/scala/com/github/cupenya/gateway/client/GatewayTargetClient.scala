@@ -12,9 +12,10 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.ExecutionContext
 
-class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
-    implicit
-    val system: ActorSystem, ec: ExecutionContext, materializer: Materializer
+class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(implicit
+    val system: ActorSystem,
+    ec: ExecutionContext,
+    materializer: Materializer
 ) extends StrictLogging {
   private val authClient = new AuthServiceClient(
     Config.integration.authentication.host,
@@ -22,10 +23,10 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
   )
 
   private val STANDARD_PORTS = List(80, 443)
-  private val API_PREFIX = Config.gateway.prefix
+  private val API_PREFIX     = Config.gateway.prefix
 
   val route = Route { context =>
-    val request = context.request
+    val request         = context.request
     val originalHeaders = request.headers.toList
     val filteredHeaders = (hostHeader :: originalHeaders - Host).noEmptyHeaders
     val eventualProxyResponse = if (secured) {
