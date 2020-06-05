@@ -16,8 +16,6 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
     implicit
     val system: ActorSystem, ec: ExecutionContext, materializer: Materializer
 ) extends StrictLogging {
-  private val connector = Http(system).outgoingConnection(host, port)
-
   private val authClient = new AuthServiceClient(
     Config.integration.authentication.host,
     Config.integration.authentication.port
@@ -56,12 +54,14 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(
   private def proxyRequest(context: RequestContext, request: HttpRequest, headers: List[HttpHeader]) = {
     val proxiedRequest = context.request.copy(
       uri = createProxiedUri(context, request.uri),
-      headers = headers
+      headers = headers,
+      protocol = HttpProtocols.`HTTP/1.1`
     )
+
     logger.debug(s"Proxying request: $proxiedRequest")
-    Source.single(proxiedRequest)
-      .via(connector)
-      .runWith(Sink.head)
+
+    Http(system)
+      .singleRequest(proxiedRequest)
       .flatMap(context.complete(_))
   }
 
