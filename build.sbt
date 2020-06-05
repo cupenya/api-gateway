@@ -31,25 +31,22 @@ libraryDependencies ++= {
   )
 }
 
+scalafmtOnCompile := true
+
 val branch = "git rev-parse --abbrev-ref HEAD" !!
+val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replaceAll("\\r", "")
 val cleanBranch = branch.toLowerCase.replaceAll(".*(cpy-[0-9]+).*", "$1").replaceAll("\\n", "").replaceAll("\\r", "")
 
-// begin docker template settings
 enablePlugins(JavaServerAppPackaging)
 enablePlugins(DockerPlugin)
 
 publishArtifact in (Compile, packageDoc) := false
-
-val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replaceAll("\\r", "")
-
 
 packageName in Docker := "cpy-docker-test/" + name.value
 version in Docker     := shortCommit
 dockerBaseImage       := "openjdk:8u252-jre"
 defaultLinuxInstallLocation in Docker := s"/opt/${name.value}" // to have consistent directory for files
 dockerRepository := Some("eu.gcr.io")
-// end docker template settings
-
 
 Revolver.settings
 

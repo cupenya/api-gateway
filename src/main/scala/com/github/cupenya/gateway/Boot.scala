@@ -6,28 +6,29 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.stream.ActorMaterializer
 import com.github.cupenya.gateway.client.AuthServiceClient
 import com.github.cupenya.gateway.health._
-import com.github.cupenya.service.discovery.{Config => _, _}
+import com.github.cupenya.service.discovery.{ Config => _, _ }
 import com.github.cupenya.service.discovery.health._
 import com.github.cupenya.gateway.server.{ ApiDashboardService, CorsRoute, GatewayHttpService }
 import com.github.cupenya.gateway.configuration._
 import com.github.cupenya.gateway.model._
 
-object Boot extends App
+object Boot
+    extends App
     with GatewayHttpService
     with ApiDashboardService
     with HealthCheckRoute
     with HealthCheckService
     with CorsRoute {
 
-  implicit val system = ActorSystem()
-  implicit val ec = system.dispatcher
+  implicit val system       = ActorSystem()
+  implicit val ec           = system.dispatcher
   implicit val materializer = ActorMaterializer()
 
   private val gatewayInterface = Config.gateway.interface
-  private val gatewayPort = Config.gateway.port
+  private val gatewayPort      = Config.gateway.port
 
   private val dashboardInterface = Config.dashboard.interface
-  private val dashboardPort = Config.dashboard.port
+  private val dashboardPort      = Config.dashboard.port
 
   val authClient = new AuthServiceClient(
     Config.integration.authentication.host,
@@ -49,22 +50,29 @@ object Boot extends App
         complete(StatusCodes.OK -> None)
       } ~ dashboardRoute
     }
-  Http().bindAndHandle(rootRoute, gatewayInterface, gatewayPort).transform(
-    binding => log.info(s"REST gateway interface bound to ${binding.localAddress} "), { t => log.error(s"Couldn't start API gateway", t); sys.exit(1) }
-  )
+  Http()
+    .bindAndHandle(rootRoute, gatewayInterface, gatewayPort)
+    .transform(
+      binding => log.info(s"REST gateway interface bound to ${binding.localAddress} "),
+      { t => log.error(s"Couldn't start API gateway", t); sys.exit(1) }
+    )
 
   log.info(s"Starting API gateway dashboard using interface $dashboardInterface and port $dashboardPort")
 
-  Http().bindAndHandle(mainDashboardRoute, dashboardInterface, dashboardPort).transform(
-    binding => log.info(s"REST gateway dashboard interface bound to ${binding.localAddress} "), { t => log.error(s"Couldn't start API gateway dashboard", t); sys.exit(1) }
-  )
+  Http()
+    .bindAndHandle(mainDashboardRoute, dashboardInterface, dashboardPort)
+    .transform(
+      binding => log.info(s"REST gateway dashboard interface bound to ${binding.localAddress} "),
+      { t => log.error(s"Couldn't start API gateway dashboard", t); sys.exit(1) }
+    )
 
   private def handleServiceUpdates[T <: ServiceUpdate](allServiceUpdates: List[T]) = {
     val serviceUpdates = allServiceUpdates.filter { upd =>
-      Config.integration.kubernetes.namespaces.isEmpty || Config.integration.kubernetes.namespaces.contains(upd.namespace)
+      Config.integration.kubernetes.namespaces.isEmpty || Config.integration.kubernetes.namespaces
+        .contains(upd.namespace)
     }
     val currentResources = GatewayConfigurationManager.currentConfig().targets.keys.toList
-    val toDelete = currentResources.filterNot(serviceUpdates.map(_.resource).contains)
+    val toDelete         = currentResources.filterNot(serviceUpdates.map(_.resource).contains)
     log.debug(s"Deleting $toDelete")
     toDelete.foreach(GatewayConfigurationManager.deleteGatewayTarget)
 
@@ -81,9 +89,14 @@ object Boot extends App
 
   val serviceDiscoveryAgent =
     //        system.actorOf(Props(new ServiceDiscoveryAgent[StaticServiceUpdate](new StaticServiceListSource)))
-    system.actorOf(Props(new ServiceDiscoveryAgent[KubernetesServiceUpdate](new KubernetesServiceDiscoveryClient, handleServiceUpdates)))
+    system.actorOf(
+      Props(
+        new ServiceDiscoveryAgent[KubernetesServiceUpdate](new KubernetesServiceDiscoveryClient, handleServiceUpdates)
+      )
+    )
 
   serviceDiscoveryAgent ! ServiceDiscoveryAgent.WatchServices
 
-  override def checks: List[HealthCheck] = List(new ServiceDiscoveryHealthCheck(serviceDiscoveryAgent), new AuthServiceHealthCheck(authClient))
+  override def checks: List[HealthCheck] =
+    List(new ServiceDiscoveryHealthCheck(serviceDiscoveryAgent), new AuthServiceHealthCheck(authClient))
 }

@@ -19,7 +19,9 @@ trait GatewayTargetDirectives extends Directives {
     pathPrefix(GatewayTargetPathMatcher(config, prefix)).flatMap(provide)
 }
 
-case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String) extends PathMatcher1[GatewayTargetClient] with StrictLogging {
+case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String)
+    extends PathMatcher1[GatewayTargetClient]
+    with StrictLogging {
   import Path._
   import PathMatcher._
 
@@ -27,38 +29,42 @@ case class GatewayTargetPathMatcher(config: GatewayConfiguration, prefix: String
     matchPathToGatewayTarget(path)
 
   @tailrec
-  private def matchPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] = path match {
-    case Empty =>
-      logger.debug(s"No match found for path: $path")
-      Unmatched
-    case Segment(apiPrefix, tail) if apiPrefix == prefix =>
-      logger.debug(s"Match found for path: $tail")
-      matchRemainingPathToGatewayTarget(tail)
-    case Segment(head, tail) =>
-      matchPathToGatewayTarget(tail)
-    case Slash(tail) => matchPathToGatewayTarget(tail)
-  }
+  private def matchPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] =
+    path match {
+      case Empty =>
+        logger.debug(s"No match found for path: $path")
+        Unmatched
+      case Segment(apiPrefix, tail) if apiPrefix == prefix =>
+        logger.debug(s"Match found for path: $tail")
+        matchRemainingPathToGatewayTarget(tail)
+      case Segment(head, tail) =>
+        matchPathToGatewayTarget(tail)
+      case Slash(tail) => matchPathToGatewayTarget(tail)
+    }
 
   @tailrec
-  private def matchRemainingPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] = path match {
-    case Slash(tail) =>
-      matchRemainingPathToGatewayTarget(tail)
-    case s @ Segment(head, _) =>
-      if (config.targets.get(head).isEmpty) {
-        val serviceStr = config.targets.map {
-          case (path, target) =>
-            (path, target.host, target.port)
+  private def matchRemainingPathToGatewayTarget(path: Path): Matching[Tuple1[GatewayTargetClient]] =
+    path match {
+      case Slash(tail) =>
+        matchRemainingPathToGatewayTarget(tail)
+      case s @ Segment(head, _) =>
+        if (config.targets.get(head).isEmpty) {
+          val serviceStr = config.targets.map {
+            case (path, target) =>
+              (path, target.host, target.port)
+          }
+          logger.debug(s"Matching additional path with segment ${head}, found none in ${serviceStr}")
         }
-        logger.debug(s"Matching additional path with segment ${head}, found none in ${serviceStr}")
-      }
-      config.targets.get(head)
-        .map(gatewayTarget => Matched(s, Tuple1(gatewayTarget)))
-        .getOrElse(Unmatched)
-    case _ => Unmatched
-  }
+        config.targets
+          .get(head)
+          .map(gatewayTarget => Matched(s, Tuple1(gatewayTarget)))
+          .getOrElse(Unmatched)
+      case _ => Unmatched
+    }
 }
 
-trait GatewayHttpService extends GatewayTargetDirectives
+trait GatewayHttpService
+    extends GatewayTargetDirectives
     with SprayJsonSupport
     with DefaultJsonProtocol
     with Directives {
@@ -99,4 +105,3 @@ trait GatewayHttpService extends GatewayTargetDirectives
         }
     }
 }
-

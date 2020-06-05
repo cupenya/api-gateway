@@ -21,12 +21,13 @@ trait HealthCheckService {
         .runCheck()
         .timeoutAfter(5 seconds)
         .recover {
-          case e => HealthCheckResult(
-            name = check.name,
-            status = HealthCheckStatus.Critical,
-            timestamp = DateTime.now.clicks,
-            message = Some(s"Error while executing health check: ${e.getMessage}")
-          )
+          case e =>
+            HealthCheckResult(
+              name = check.name,
+              status = HealthCheckStatus.Critical,
+              timestamp = DateTime.now.clicks,
+              message = Some(s"Error while executing health check: ${e.getMessage}")
+            )
         }
   }
 
@@ -34,8 +35,9 @@ trait HealthCheckService {
     import akka.pattern._
 
     def timeoutAfter(d: FiniteDuration)(implicit ec: ExecutionContext, sys: ActorSystem): Future[T] = {
-      val eventualTimeout = after(d, sys.scheduler)(Future.failed(new TimeoutException(s"Timed out after ${d.toMillis} ms")))
-      Future firstCompletedOf (f :: eventualTimeout :: Nil)
+      val eventualTimeout =
+        after(d, sys.scheduler)(Future.failed(new TimeoutException(s"Timed out after ${d.toMillis} ms")))
+      Future.firstCompletedOf(f :: eventualTimeout :: Nil)
     }
 
   }

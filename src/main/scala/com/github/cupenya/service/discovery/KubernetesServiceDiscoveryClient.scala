@@ -21,7 +21,10 @@ import scala.language.postfixOps
 import scala.util.Try
 
 class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: ExecutionContext, materializer: Materializer)
-    extends ServiceDiscoverySource[KubernetesServiceUpdate] with KubernetesServiceUpdateParser with SprayJsonSupport with Logging {
+    extends ServiceDiscoverySource[KubernetesServiceUpdate]
+    with KubernetesServiceUpdateParser
+    with SprayJsonSupport
+    with Logging {
 
   // FIXME: get rid of SSL hack
   private val trustAllCerts: Array[TrustManager] = Array(new X509TrustManager() {
@@ -50,36 +53,48 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
   }
 
   private val req = Get(s"/api/v1/services")
-    .withHeaders(Connection("Keep-Alive"), Authorization(OAuth2BearerToken(Config.`service-discovery`.kubernetes.token)))
+    .withHeaders(
+      Connection("Keep-Alive"),
+      Authorization(OAuth2BearerToken(Config.`service-discovery`.kubernetes.token))
+    )
 
   def healthCheck: Future[_] =
     Source.single(req).via(client).runWith(Sink.head).filter(_.status.isSuccess())
 
-  def listServices: Future[List[KubernetesServiceUpdate]] = Source
-    .single(req)
-    .via(client)
-    .mapAsync(1)(res =>
-      Unmarshal(res.entity).to[ServiceList]
-        .map(_.items.flatMap(so => so.metadata.labels.flatMap(_.get("resource")).map(resource => {
-          val ksu = KubernetesServiceUpdate(
-            UpdateType.Addition,
-            cleanMetadataString(so.metadata.name),
-            cleanMetadataString(resource),
-            cleanMetadataString(so.metadata.namespace),
-            so.spec.ports.headOption.map(_.port).getOrElse(DEFAULT_PORT),
-            so.metadata.labels
-              .flatMap(_.get("secured"))
-              .flatMap(value => Try(value.toBoolean).toOption)
-              .getOrElse(true), // Default is secured
-            so.metadata.annotations
-              .flatMap(_.get("permissions"))
-              .flatMap(value => Try(value.parseJson.convertTo[List[Permission]]).toOption)
-              .getOrElse(Nil)
+  def listServices: Future[List[KubernetesServiceUpdate]] =
+    Source
+      .single(req)
+      .via(client)
+      .mapAsync(1)(res =>
+        Unmarshal(res.entity)
+          .to[ServiceList]
+          .map(
+            _.items.flatMap(so =>
+              so.metadata.labels
+                .flatMap(_.get("resource"))
+                .map(resource => {
+                  val ksu = KubernetesServiceUpdate(
+                    UpdateType.Addition,
+                    cleanMetadataString(so.metadata.name),
+                    cleanMetadataString(resource),
+                    cleanMetadataString(so.metadata.namespace),
+                    so.spec.ports.headOption.map(_.port).getOrElse(DEFAULT_PORT),
+                    so.metadata.labels
+                      .flatMap(_.get("secured"))
+                      .flatMap(value => Try(value.toBoolean).toOption)
+                      .getOrElse(true), // Default is secured
+                    so.metadata.annotations
+                      .flatMap(_.get("permissions"))
+                      .flatMap(value => Try(value.parseJson.convertTo[List[Permission]]).toOption)
+                      .getOrElse(Nil)
+                  )
+                  log.debug(s"Got Kubernetes service update $ksu")
+                  ksu
+                })
+            )
           )
-          log.debug(s"Got Kubernetes service update $ksu")
-          ksu
-        }))))
-    .runWith(Sink.head)
+      )
+      .runWith(Sink.head)
 
   override def name: String = "Kubernetes API"
 }
@@ -90,17 +105,23 @@ trait KubernetesServiceUpdateParser extends DefaultJsonProtocol with Logging {
 
   case class Spec(ports: List[PortMapping])
 
-  case class Metadata(uid: String, name: String, namespace: String, labels: Option[Map[String, String]], annotations: Option[Map[String, String]])
+  case class Metadata(
+      uid: String,
+      name: String,
+      namespace: String,
+      labels: Option[Map[String, String]],
+      annotations: Option[Map[String, String]]
+  )
 
   case class ServiceObject(spec: Spec, metadata: Metadata)
 
   case class ServiceList(items: List[ServiceObject])
 
-  implicit val portMappingFormat = jsonFormat4(PortMapping)
-  implicit val specFormat = jsonFormat1(Spec)
-  implicit val metadataFormat = jsonFormat5(Metadata)
+  implicit val portMappingFormat   = jsonFormat4(PortMapping)
+  implicit val specFormat          = jsonFormat1(Spec)
+  implicit val metadataFormat      = jsonFormat5(Metadata)
   implicit val serviceObjectFormat = jsonFormat2(ServiceObject)
-  implicit val serviceListFormat = jsonFormat1(ServiceList)
+  implicit val serviceListFormat   = jsonFormat1(ServiceList)
 
   // FIXME: is this really necessary?
   implicit val toServiceListUnmarshaller: Unmarshaller[HttpEntity, ServiceList] =
@@ -132,6 +153,13 @@ trait DiscoverableThroughDns extends DiscoverableAddress with KubernetesNamespac
   def address: String = s"$name.$namespace"
 }
 
-case class KubernetesServiceUpdate(updateType: UpdateType, name: String, resource: String, namespace: String, port: Int, secured: Boolean, permissions: List[Permission])
-  extends ServiceUpdate
-  with DiscoverableThroughDns
+case class KubernetesServiceUpdate(
+    updateType: UpdateType,
+    name: String,
+    resource: String,
+    namespace: String,
+    port: Int,
+    secured: Boolean,
+    permissions: List[Permission]
+) extends ServiceUpdate
+    with DiscoverableThroughDns
