@@ -1,9 +1,11 @@
 import ReleaseTransformations._
 import com.typesafe.sbt.packager.docker.Cmd
 
+import scala.sys.process._
+
 name          := """api-gateway"""
 organization  := "com.github.cupenya"
-scalaVersion  := "2.11.8"
+scalaVersion  := "2.13.2"
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
@@ -12,43 +14,39 @@ resolvers += Resolver.jcenterRepo
 resolvers += "Cupenya Nexus" at "https://test.cupenya.com/nexus/content/groups/public"
 
 libraryDependencies ++= {
-  val akkaV            = "2.4.17"
-  val akkaHttpV	       = "10.0.7"
+  val akkaV            = "2.6.5"
+  val akkaHttpV	       = "10.1.12"
   val ficusV           = "1.2.4"
-  val scalaTestV       = "3.0.0-M15"
-  val slf4sV           = "1.7.10"
-  val scalaLoggingV    = "3.7.2"
-  val logbackV         = "1.1.3"
+  val scalaTestV       = "3.1.2"
+  val scalaLoggingV    = "3.9.2"
+  val logbackV         = "1.2.3"
   Seq(
-    "com.typesafe.akka" %% "akka-http"                         % akkaHttpV,
-    "com.typesafe.akka" %% "akka-http-spray-json"              % akkaHttpV,
-    "com.typesafe.akka" %% "akka-slf4j"                        % akkaV,
-    "com.typesafe.scala-logging" %% "scala-logging"            % scalaLoggingV,
-    "org.slf4s"         %% "slf4s-api"                         % slf4sV,
-    "ch.qos.logback"    %  "logback-classic"                   % logbackV,
-    "org.scalatest"     %% "scalatest"                         % scalaTestV       % Test
+    "com.typesafe.akka"          %% "akka-http"             % akkaHttpV,
+    "com.typesafe.akka"          %% "akka-http-spray-json"  % akkaHttpV,
+    "com.typesafe.akka"          %% "akka-stream"           % akkaV,
+    "com.typesafe.akka"          %% "akka-slf4j"            % akkaV,
+    "com.typesafe.scala-logging" %% "scala-logging"         % scalaLoggingV,
+    "ch.qos.logback"              %  "logback-classic"      % logbackV,
+    "org.scalatest"              %% "scalatest"             % scalaTestV  % Test
   )
 }
 
+scalafmtOnCompile := true
+
 val branch = "git rev-parse --abbrev-ref HEAD" !!
+val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replaceAll("\\r", "")
 val cleanBranch = branch.toLowerCase.replaceAll(".*(cpy-[0-9]+).*", "$1").replaceAll("\\n", "").replaceAll("\\r", "")
 
-// begin docker template settings
 enablePlugins(JavaServerAppPackaging)
 enablePlugins(DockerPlugin)
 
 publishArtifact in (Compile, packageDoc) := false
 
-val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replaceAll("\\r", "")
-
-
 packageName in Docker := "cpy-docker-test/" + name.value
 version in Docker     := shortCommit
-dockerBaseImage       := "openjdk:8u242-jre"
+dockerBaseImage       := "openjdk:8u252-jre"
 defaultLinuxInstallLocation in Docker := s"/opt/${name.value}" // to have consistent directory for files
 dockerRepository := Some("eu.gcr.io")
-// end docker template settings
-
 
 Revolver.settings
 

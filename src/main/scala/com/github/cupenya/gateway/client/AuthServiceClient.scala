@@ -15,12 +15,15 @@ import spray.json._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class AuthServiceClient(host: String, port: Int)(
-    implicit
-    val system: ActorSystem, ec: ExecutionContext, materializer: Materializer
-) extends DefaultJsonProtocol with SprayJsonSupport with StrictLogging {
+class AuthServiceClient(host: String, port: Int)(implicit
+    val system: ActorSystem,
+    ec: ExecutionContext,
+    materializer: Materializer
+) extends DefaultJsonProtocol
+    with SprayJsonSupport
+    with StrictLogging {
 
-  implicit val jwtFormat = jsonFormat1(JwtTokenResponse)
+  implicit val jwtFormat       = jsonFormat1(JwtTokenResponse)
   implicit val loginDataFormat = jsonFormat2(LoginData)
 
   private lazy val client = Http(system).outgoingConnection(host, port, settings = ClientConnectionSettings(system))
@@ -28,21 +31,23 @@ class AuthServiceClient(host: String, port: Int)(
   def getToken(headers: Seq[HttpHeader]): Future[Either[HttpResponse, JwtTokenResponse]] = {
     logger.debug(s"Getting token with headers $headers")
     Source
-      .single(Get("/auth/token").withHeaders(headers: _*))
+      .single(Get("/auth/token").withHeaders(headers))
       .via(client)
       .runWith(Sink.head)
       .flatMap { res =>
         res.status match {
           case StatusCodes.OK => Unmarshal(res.entity).to[JwtTokenResponse].map(Right.apply)
-          case _ => Future.successful(Left(res))
+          case _              => Future.successful(Left(res))
         }
       }
   }
 
   def login(loginData: LoginData): Future[HttpResponse] = {
     Source
-      .single(Post("/auth/login")
-        .withEntity(`application/json`, loginData.toJson.compactPrint))
+      .single(
+        Post("/auth/login")
+          .withEntity(`application/json`, loginData.toJson.compactPrint)
+      )
       .via(client)
       .runWith(Sink.head)
   }
@@ -56,7 +61,7 @@ class AuthServiceClient(host: String, port: Int)(
 
   def currentUser(headers: Seq[HttpHeader]): Future[HttpResponse] = {
     Source
-      .single(Get("/auth/currentUser").withHeaders(headers: _*))
+      .single(Get("/auth/currentUser").withHeaders(headers))
       .via(client)
       .runWith(Sink.head)
   }

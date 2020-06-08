@@ -1,8 +1,7 @@
 package com.github.cupenya.service.discovery
 
-import org.slf4s.{ Logging => SLF4SLogging }
+import com.typesafe.scalalogging._
 
-trait Logging extends SLF4SLogging {
-  @inline
-  protected[this] lazy val logger = log
+trait Logging extends LazyLogging {
+  protected[this] lazy val log = logger
 }

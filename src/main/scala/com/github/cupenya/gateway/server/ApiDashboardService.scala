@@ -13,8 +13,8 @@ import spray.json.DefaultJsonProtocol
 import scala.concurrent.ExecutionContext
 
 trait Protocols extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val serviceRouteFormat = jsonFormat3(ServiceRoute)
-  implicit val serviceRoutesFormat = jsonFormat1(ServiceRoutes)
+  implicit val serviceRouteFormat         = jsonFormat3(ServiceRoute)
+  implicit val serviceRoutesFormat        = jsonFormat1(ServiceRoutes)
   implicit val registerServiceRouteFormat = jsonFormat5(RegisterServiceRoute)
 }
 
@@ -37,9 +37,15 @@ trait ApiDashboardService extends Directives with Protocols {
       pathEndOrSingleSlash {
         get {
           complete {
-            ServiceRoutes(GatewayConfigurationManager.currentConfig().targets.map {
-              case (key, target) => ServiceRoute(key, target.host, target.port)
-            }.toList)
+            ServiceRoutes(
+              GatewayConfigurationManager
+                .currentConfig()
+                .targets
+                .map {
+                  case (key, target) => ServiceRoute(key, target.host, target.port)
+                }
+                .toList
+            )
           }
         } ~
           post {
@@ -61,4 +67,10 @@ case class ServiceRoute(resource: String, host: String, port: Int)
 
 case class ServiceRoutes(services: List[ServiceRoute])
 
-case class RegisterServiceRoute(name: String, host: String, resource: String, port: Option[Int] = None, secured: Option[Boolean] = None)
+case class RegisterServiceRoute(
+    name: String,
+    host: String,
+    resource: String,
+    port: Option[Int] = None,
+    secured: Option[Boolean] = None
+)

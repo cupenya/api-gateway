@@ -10,16 +10,21 @@ import com.github.cupenya.gateway.model.GatewayTarget
 import scala.concurrent.ExecutionContext
 
 object GatewayConfigurationManager {
-  private val configHolder = new AtomicReference[GatewayConfiguration](GatewayConfiguration(Map.empty[String, GatewayTargetClient]))
+  private val configHolder =
+    new AtomicReference[GatewayConfiguration](GatewayConfiguration(Map.empty[String, GatewayTargetClient]))
 
   def currentConfig(): GatewayConfiguration =
     configHolder.get()
 
-  def upsertGatewayTarget(target: GatewayTarget)(implicit system: ActorSystem, ec: ExecutionContext, materializer: Materializer): Unit = {
+  def upsertGatewayTarget(
+      target: GatewayTarget
+  )(implicit system: ActorSystem, ec: ExecutionContext, materializer: Materializer): Unit = {
     val current = configHolder.get()
-    configHolder.lazySet(current.copy(
-      current.targets.updated(target.resource, new GatewayTargetClient(target.address, target.port, target.secured))
-    ))
+    configHolder.lazySet(
+      current.copy(
+        current.targets.updated(target.resource, new GatewayTargetClient(target.address, target.port, target.secured))
+      )
+    )
   }
 
   def deleteGatewayTarget(resource: String): Unit = {

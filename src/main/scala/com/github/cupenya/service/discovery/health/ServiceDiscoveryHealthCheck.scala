@@ -21,7 +21,7 @@ class ServiceDiscoveryHealthCheck(serviceDiscoveryAgent: ActorRef) extends Healt
 
   override def runCheck()(implicit ec: ExecutionContext): Future[HealthCheckResult] = {
     (serviceDiscoveryAgent ? ServiceDiscoveryAgent.HealthCheck).mapTo[ServiceDiscoveryStatus].map {
-      case OK => healthCheckResult(HealthCheckStatus.Ok)
+      case OK  => healthCheckResult(HealthCheckStatus.Ok)
       case NOK => healthCheckResult(HealthCheckStatus.Critical)
     }
   }

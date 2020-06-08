@@ -6,9 +6,9 @@ import spray.json._
 sealed trait PermissionModel
 
 case class Permission(
-  id: String,
-  name: String,
-  description: Option[String]
+    id: String,
+    name: String,
+    description: Option[String]
 ) extends PermissionModel
 
 object PermissionModel extends DefaultJsonProtocol {

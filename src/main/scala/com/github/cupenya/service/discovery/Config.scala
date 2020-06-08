@@ -3,7 +3,7 @@ package com.github.cupenya.service.discovery
 import java.util.concurrent.TimeUnit
 
 import com.typesafe.config.ConfigFactory
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 object Config {
   private val rootConfig = ConfigFactory.load()
@@ -13,15 +13,15 @@ object Config {
 
     object kubernetes {
       private val k8sConfig = config.getConfig("kubernetes")
-      val host = k8sConfig.getString("host")
-      val port = k8sConfig.getInt("port")
-      val token = k8sConfig.getString("token")
-      val namespaces = k8sConfig.getStringList("namespaces").toList
+      val host              = k8sConfig.getString("host")
+      val port              = k8sConfig.getInt("port")
+      val token             = k8sConfig.getString("token")
+      val namespaces        = k8sConfig.getStringList("namespaces").asScala
     }
 
     object polling {
       private val reconnectConfig = config.getConfig("polling")
-      val interval = reconnectConfig.getDuration("interval", TimeUnit.SECONDS)
+      val interval                = reconnectConfig.getDuration("interval", TimeUnit.SECONDS)
     }
   }
 }

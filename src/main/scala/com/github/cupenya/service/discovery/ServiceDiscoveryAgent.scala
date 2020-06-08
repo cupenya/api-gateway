@@ -9,14 +9,17 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
-class ServiceDiscoveryAgent[T <: ServiceUpdate](serviceDiscoverySource: ServiceDiscoverySource[T], handleServiceUpdates: (List[T]) => Any)(
-    implicit
+class ServiceDiscoveryAgent[T <: ServiceUpdate](
+    serviceDiscoverySource: ServiceDiscoverySource[T],
+    handleServiceUpdates: (List[T]) => Any
+)(implicit
     materializer: Materializer
-) extends Actor with Logging {
+) extends Actor
+    with Logging {
 
   import ServiceDiscoveryAgent._
 
-  implicit val system: ActorSystem = context.system
+  implicit val system: ActorSystem  = context.system
   implicit val ec: ExecutionContext = context.dispatcher
 
   val SERVICE_POLLING_INTERVAL = Config.`service-discovery`.polling.interval
@@ -46,9 +49,8 @@ class ServiceDiscoveryAgent[T <: ServiceUpdate](serviceDiscoverySource: ServiceD
 
   def watchServices(): Unit = {
     system.scheduler.schedule(SERVICE_POLLING_INTERVAL seconds, 5 seconds) {
-      serviceDiscoverySource.listServices.map(handleServiceUpdates).onFailure {
-        case t =>
-          log.error(s"Couldn't list services: ${t.getMessage}", t)
+      serviceDiscoverySource.listServices.map(handleServiceUpdates).failed.foreach { t =>
+        log.error(s"Couldn't list services: ${t.getMessage}", t)
       }
     }
   }
