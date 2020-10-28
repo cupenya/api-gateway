@@ -8,7 +8,10 @@
     </encoder>
   </appender>
 
-  <root level="debug">
+  <logger name="com.github.cupenya" level="DEBUG" />
+  <logger name="kamon"              level="DEBUG" />
+
+  <root level="INFO">
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>
