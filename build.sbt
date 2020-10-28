@@ -1,11 +1,10 @@
-import ReleaseTransformations._
-import com.typesafe.sbt.packager.docker.Cmd
-
 import scala.sys.process._
+
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 
 name          := """api-gateway"""
 organization  := "com.github.cupenya"
-scalaVersion  := "2.13.2"
+scalaVersion  := "2.13.3"
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
@@ -14,10 +13,10 @@ resolvers += Resolver.jcenterRepo
 resolvers += "Cupenya Nexus" at "https://test.cupenya.com/nexus/content/groups/public"
 
 libraryDependencies ++= {
-  val akkaV            = "2.6.5"
-  val akkaHttpV	       = "10.1.12"
-  val ficusV           = "1.2.4"
-  val scalaTestV       = "3.1.2"
+  val akkaV            = "2.6.10"
+  val akkaHttpV	       = "10.2.1"
+  val kamonVersion     = "2.1.7"
+  val scalaTestV       = "3.2.2"
   val scalaLoggingV    = "3.9.2"
   val logbackV         = "1.2.3"
   Seq(
@@ -25,8 +24,12 @@ libraryDependencies ++= {
     "com.typesafe.akka"          %% "akka-http-spray-json"  % akkaHttpV,
     "com.typesafe.akka"          %% "akka-stream"           % akkaV,
     "com.typesafe.akka"          %% "akka-slf4j"            % akkaV,
+    "io.kamon"                   %% "kamon-core"            % kamonVersion,
+    "io.kamon"                   %% "kamon-akka-http"       % kamonVersion,
+    "io.kamon"                   %% "kamon-system-metrics"  % kamonVersion,
+    "io.kamon"                   %% "kamon-datadog"         % kamonVersion,
     "com.typesafe.scala-logging" %% "scala-logging"         % scalaLoggingV,
-    "ch.qos.logback"              %  "logback-classic"      % logbackV,
+    "ch.qos.logback"              % "logback-classic"       % logbackV,
     "org.scalatest"              %% "scalatest"             % scalaTestV  % Test
   )
 }
@@ -37,14 +40,15 @@ val branch = "git rev-parse --abbrev-ref HEAD" !!
 val shortCommit = ("git rev-parse --short HEAD" !!).replaceAll("\\n", "").replaceAll("\\r", "")
 val cleanBranch = branch.toLowerCase.replaceAll(".*(cpy-[0-9]+).*", "$1").replaceAll("\\n", "").replaceAll("\\r", "")
 
-enablePlugins(JavaServerAppPackaging)
-enablePlugins(DockerPlugin)
+enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin)
+
+javaAgents += "io.kamon" % "kanela-agent" % "1.0.7"
 
 publishArtifact in (Compile, packageDoc) := false
 
 packageName in Docker := "cpy-docker-test/" + name.value
 version in Docker     := shortCommit
-dockerBaseImage       := "openjdk:8u252-jre"
+dockerBaseImage       := "openjdk:11-jre-slim"
 defaultLinuxInstallLocation in Docker := s"/opt/${name.value}" // to have consistent directory for files
 dockerRepository := Some("eu.gcr.io")
 

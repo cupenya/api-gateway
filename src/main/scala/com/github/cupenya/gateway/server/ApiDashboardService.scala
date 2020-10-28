@@ -1,16 +1,15 @@
 package com.github.cupenya.gateway.server
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives
-import akka.stream.Materializer
-import akka.util.Timeout
-import com.github.cupenya.gateway.configuration.GatewayConfigurationManager
-import com.github.cupenya.gateway.model.GatewayTarget
-import spray.json.DefaultJsonProtocol
+import scala.concurrent._
 
-import scala.concurrent.ExecutionContext
+import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server._
+import akka.util._
+import com.github.cupenya.gateway.configuration._
+import com.github.cupenya.gateway.model._
+import spray.json.DefaultJsonProtocol
 
 trait Protocols extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val serviceRouteFormat         = jsonFormat3(ServiceRoute)
@@ -23,11 +22,7 @@ trait ApiDashboardService extends Directives with Protocols {
   import scala.language.postfixOps
 
   implicit val system: ActorSystem
-
   implicit def ec: ExecutionContext
-
-  implicit val materializer: Materializer
-
   implicit val timeout = Timeout(5 seconds)
 
   private val DEFAULT_PORT = 80

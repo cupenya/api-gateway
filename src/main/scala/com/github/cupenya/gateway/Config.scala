@@ -1,9 +1,8 @@
 package com.github.cupenya.gateway
 
-import java.util.concurrent.TimeUnit
-
-import com.typesafe.config.ConfigFactory
 import scala.jdk.CollectionConverters._
+
+import com.typesafe.config._
 
 object Config {
   private val rootConfig = ConfigFactory.load()

@@ -13,7 +13,7 @@ trait HealthCheckService {
   def checks: List[HealthCheck]
 
   def runChecks()(implicit ec: ExecutionContext, actorSystem: ActorSystem): Future[List[HealthCheckResult]] =
-    Future.sequence(checks.map(_.checkWithRecovery))
+    Future.sequence(checks.map(_.checkWithRecovery()))
 
   implicit class RichHealthCheck(check: HealthCheck) {
     def checkWithRecovery()(implicit ec: ExecutionContext, actorSystem: ActorSystem): Future[HealthCheckResult] =

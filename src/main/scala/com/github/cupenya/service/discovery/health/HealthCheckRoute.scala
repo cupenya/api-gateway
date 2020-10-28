@@ -1,21 +1,19 @@
 package com.github.cupenya.service.discovery.health
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives
-import akka.stream.Materializer
-import com.github.cupenya.service.discovery.{ Config, Logging }
-import spray.json.DefaultJsonProtocol
+import scala.concurrent._
 
-import scala.concurrent.ExecutionContext
+import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server._
+import com.github.cupenya.service.discovery._
+import spray.json.DefaultJsonProtocol
 
 trait HealthCheckRoute extends Directives with DefaultJsonProtocol with SprayJsonSupport with Logging {
   self: HealthCheckService =>
 
   implicit def ec: ExecutionContext
   implicit def system: ActorSystem
-  implicit def materializer: Materializer
 
   case class HealthCheckResults(statuses: List[HealthCheckResult])
 

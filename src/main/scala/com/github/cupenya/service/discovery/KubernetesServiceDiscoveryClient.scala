@@ -2,23 +2,22 @@ package com.github.cupenya.service.discovery
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
+
+import scala.concurrent._
+import scala.util.Try
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{ Http, HttpsConnectionContext }
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.http.scaladsl.unmarshalling.{ Unmarshal, Unmarshaller }
-import akka.stream.Materializer
+import akka.http.scaladsl.settings._
+import akka.http.scaladsl.unmarshalling._
+import akka.http.scaladsl._
+import akka.stream._
 import akka.stream.scaladsl.{ Sink, Source }
+import javax.net.ssl._
 import spray.json._
-
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.postfixOps
-import scala.util.Try
 
 class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: ExecutionContext, materializer: Materializer)
     extends ServiceDiscoverySource[KubernetesServiceUpdate]
@@ -41,16 +40,17 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
   private val port = Config.`service-discovery`.kubernetes.port
   private val host = Config.`service-discovery`.kubernetes.host
 
-  private lazy val client = if (port == 443) {
-    Http(system).outgoingConnectionHttps(
-      host,
-      port,
-      connectionContext = new HttpsConnectionContext(ssl),
-      settings = ClientConnectionSettings(system)
-    )
-  } else {
-    Http(system).outgoingConnection(host, port, settings = ClientConnectionSettings(system))
-  }
+  private lazy val client =
+    if (port == 443) {
+      Http(system).outgoingConnectionHttps(
+        host,
+        port,
+        connectionContext = ConnectionContext.httpsClient(ssl),
+        settings = ClientConnectionSettings(system)
+      )
+    } else {
+      Http(system).outgoingConnection(host, port, settings = ClientConnectionSettings(system))
+    }
 
   private val req = Get(s"/api/v1/services")
     .withHeaders(
@@ -139,7 +139,7 @@ trait KubernetesServiceUpdateParser extends DefaultJsonProtocol with Logging {
   val DEFAULT_PORT = 8080
 
   protected def cleanMetadataString(value: String) =
-    value.filterNot('"' ==)
+    value.filterNot(_ == '"')
 }
 
 trait KubernetesNamespace {

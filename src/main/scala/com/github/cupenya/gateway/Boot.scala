@@ -1,16 +1,17 @@
 package com.github.cupenya.gateway
 
 import akka.actor.{ ActorSystem, Props }
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.MethodRejection
 import com.github.cupenya.gateway.client.AuthServiceClient
-import com.github.cupenya.gateway.health._
-import com.github.cupenya.service.discovery.{ Config => _, _ }
-import com.github.cupenya.service.discovery.health._
-import com.github.cupenya.gateway.server.{ ApiDashboardService, CorsRoute, GatewayHttpService }
 import com.github.cupenya.gateway.configuration._
+import com.github.cupenya.gateway.health._
 import com.github.cupenya.gateway.model._
+import com.github.cupenya.gateway.server._
+import com.github.cupenya.service.discovery.health._
+import com.github.cupenya.service.discovery.{ Config => _, _ }
+import kamon.Kamon
 
 object Boot
     extends App
@@ -19,10 +20,10 @@ object Boot
     with HealthCheckRoute
     with HealthCheckService
     with CorsRoute {
+  Kamon.init()
 
-  implicit val system       = ActorSystem()
-  implicit val ec           = system.dispatcher
-  implicit val materializer = ActorMaterializer()
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val ec                  = system.dispatcher
 
   private val gatewayInterface = Config.gateway.interface
   private val gatewayPort      = Config.gateway.port
@@ -39,19 +40,25 @@ object Boot
 
   val rootRoute =
     defaultCORSHeaders {
-      options {
-        complete(StatusCodes.OK -> None)
+      cancelRejection(MethodRejection(HttpMethods.OPTIONS)) {
+        options {
+          complete(StatusCodes.OK -> None)
+        }
       } ~ authRoute ~ healthRoute ~ gatewayRoute
     }
 
   val mainDashboardRoute =
     defaultCORSHeaders {
-      options {
-        complete(StatusCodes.OK -> None)
+      cancelRejection(MethodRejection(HttpMethods.OPTIONS)) {
+        options {
+          complete(StatusCodes.OK -> None)
+        }
       } ~ dashboardRoute
     }
+
   Http()
-    .bindAndHandle(rootRoute, gatewayInterface, gatewayPort)
+    .newServerAt(gatewayInterface, gatewayPort)
+    .bind(rootRoute)
     .transform(
       binding => log.info(s"REST gateway interface bound to ${binding.localAddress} "),
       { t => log.error(s"Couldn't start API gateway", t); sys.exit(1) }
@@ -60,7 +67,8 @@ object Boot
   log.info(s"Starting API gateway dashboard using interface $dashboardInterface and port $dashboardPort")
 
   Http()
-    .bindAndHandle(mainDashboardRoute, dashboardInterface, dashboardPort)
+    .newServerAt(dashboardInterface, dashboardPort)
+    .bind(mainDashboardRoute)
     .transform(
       binding => log.info(s"REST gateway dashboard interface bound to ${binding.localAddress} "),
       { t => log.error(s"Couldn't start API gateway dashboard", t); sys.exit(1) }

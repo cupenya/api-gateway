@@ -1,18 +1,17 @@
 package com.github.cupenya.gateway.server
 
+import scala.annotation._
+import scala.concurrent._
+
 import akka.actor.ActorSystem
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson._
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server._
-import akka.stream.Materializer
+import com.github.cupenya.gateway._
 import com.github.cupenya.gateway.client.{ AuthServiceClient, GatewayTargetClient, LoginData }
-import com.github.cupenya.gateway.configuration.{ GatewayConfiguration, GatewayConfigurationManager }
-import com.github.cupenya.gateway.Config
-import com.typesafe.scalalogging.StrictLogging
+import com.github.cupenya.gateway.configuration._
+import com.typesafe.scalalogging._
 import spray.json.DefaultJsonProtocol
-
-import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
 
 trait GatewayTargetDirectives extends Directives {
   def serviceRouteForResource(config: GatewayConfiguration, prefix: String): Directive[Tuple1[GatewayTargetClient]] =
@@ -70,11 +69,7 @@ trait GatewayHttpService
     with Directives {
 
   implicit def system: ActorSystem
-
   implicit def ec: ExecutionContext
-
-  implicit val materializer: Materializer
-
   implicit val loginDataFormat = jsonFormat2(LoginData)
 
   val gatewayRoute: Route = (ctx: RequestContext) =>
