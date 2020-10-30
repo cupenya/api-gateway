@@ -74,7 +74,7 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
               so.metadata.labels
                 .flatMap(_.get("resource"))
                 .map(resource => {
-                  val ksu = KubernetesServiceUpdate(
+                  KubernetesServiceUpdate(
                     UpdateType.Addition,
                     cleanMetadataString(so.metadata.name),
                     cleanMetadataString(resource),
@@ -89,8 +89,6 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
                       .flatMap(value => Try(value.parseJson.convertTo[List[Permission]]).toOption)
                       .getOrElse(Nil)
                   )
-                  log.debug(s"Got Kubernetes service update $ksu")
-                  ksu
                 })
             )
           )

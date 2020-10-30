@@ -80,6 +80,7 @@ object Boot
         .contains(upd.namespace)
     }
     val currentResources = GatewayConfigurationManager.currentConfig().targets.keys.toList
+    log.debug(s"Discovered ${currentResources.size} services.")
 
     val toDelete = currentResources.filterNot(serviceUpdates.map(_.resource).contains)
     if (toDelete.nonEmpty) {
