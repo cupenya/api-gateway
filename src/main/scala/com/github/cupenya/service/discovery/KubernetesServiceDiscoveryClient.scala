@@ -57,6 +57,10 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
   def healthCheck: Future[_] =
     Http()
       .singleRequest(request, connectionContext)
+      .map { response =>
+        response.discardEntityBytes()
+        response
+      }
       .filter(_.status.isSuccess())
 
   def listServices: Future[List[KubernetesServiceUpdate]] = {
