@@ -24,17 +24,25 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(imp
   private val API_PREFIX     = Config.gateway.prefix
 
   val route = Route { context =>
-    val request         = context.request
-    val originalHeaders = request.headers.toList
-    val filteredHeaders = (hostHeader :: originalHeaders - Host).noEmptyHeaders
+    val request = context.request
+    val filteredHeaders =
+      request.headers
+        .filterNot(header =>
+          header.is(Host.lowercaseName) || header.is(`Timeout-Access`.lowercaseName) || header.value.isEmpty
+        )
+        .appended(hostHeader)
+
     val eventualProxyResponse =
       if (secured) {
         logger.debug(s"Need token for request ${request.uri.path}")
         authClient.getToken(filteredHeaders).flatMap {
           case Right(tokenResponse) =>
             logger.debug(s"Token ${tokenResponse.jwt}")
-            val headersWithAuth = Authorization(OAuth2BearerToken(tokenResponse.jwt)) :: filteredHeaders
-            proxyRequest(context, request, headersWithAuth)
+            proxyRequest(
+              context,
+              request,
+              filteredHeaders.appended(Authorization(OAuth2BearerToken(tokenResponse.jwt)))
+            )
           case Left(errorResponse) =>
             logger.warn(s"Failed to retrieve token.")
             context.complete(errorResponse)
@@ -52,7 +60,7 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(imp
     )
   }
 
-  private def proxyRequest(context: RequestContext, request: HttpRequest, headers: List[HttpHeader]) = {
+  private def proxyRequest(context: RequestContext, request: HttpRequest, headers: Seq[HttpHeader]) = {
     val proxiedRequest =
       context.request
         .withUri(createProxiedUri(context, request.uri))
