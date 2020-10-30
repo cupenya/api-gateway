@@ -80,13 +80,20 @@ object Boot
         .contains(upd.namespace)
     }
     val currentResources = GatewayConfigurationManager.currentConfig().targets.keys.toList
-    val toDelete         = currentResources.filterNot(serviceUpdates.map(_.resource).contains)
-    log.debug(s"Deleting $toDelete")
+
+    val toDelete = currentResources.filterNot(serviceUpdates.map(_.resource).contains)
+    if (toDelete.nonEmpty) {
+      log.debug(s"Removed services: $toDelete")
+    }
+
     toDelete.foreach(GatewayConfigurationManager.deleteGatewayTarget)
 
     // TODO: handle config updates
     val newResources = serviceUpdates.filterNot(su => currentResources.contains(su.resource))
-    log.debug(s"New services $newResources")
+    if (newResources.nonEmpty) {
+      log.debug(s"New services: $newResources")
+    }
+
     newResources.foreach(serviceUpdate => {
       val gatewayTarget =
         GatewayTarget(serviceUpdate.resource, serviceUpdate.address, serviceUpdate.port, serviceUpdate.secured)
