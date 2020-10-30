@@ -56,7 +56,8 @@ class ServiceDiscoveryAgent[T <: ServiceUpdate](
           services
         }
         .map(handleServiceUpdates)
-        .failed.foreach { t =>
+        .failed
+        .foreach { t =>
           t.printStackTrace()
           log.error(s"Couldn't list services: ${t.getMessage}", t)
         }
