@@ -40,6 +40,13 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
   private val port = Config.`service-discovery`.kubernetes.port
   private val host = Config.`service-discovery`.kubernetes.host
 
+  private val connectionContext: HttpsConnectionContext =
+    if (port == 443) {
+      ConnectionContext.httpsClient(ssl)
+    } else {
+      Http(system).defaultClientHttpsContext
+    }
+
   private lazy val client =
     if (port == 443) {
       Http(system).outgoingConnectionHttps(
@@ -52,16 +59,58 @@ class KubernetesServiceDiscoveryClient()(implicit system: ActorSystem, ec: Execu
       Http(system).outgoingConnection(host, port, settings = ClientConnectionSettings(system))
     }
 
-  private val req = Get(s"/api/v1/services")
-    .withHeaders(
-      Connection("Keep-Alive"),
-      Authorization(OAuth2BearerToken(Config.`service-discovery`.kubernetes.token))
-    )
+  private val req =
+    Get(s"/api/v1/services")
+      .withHeaders(
+        Connection("Keep-Alive"),
+        Authorization(OAuth2BearerToken(Config.`service-discovery`.kubernetes.token))
+      )
 
   def healthCheck: Future[_] =
     Source.single(req).via(client).runWith(Sink.head).filter(_.status.isSuccess())
 
-  def listServices: Future[List[KubernetesServiceUpdate]] =
+  def listServices: Future[List[KubernetesServiceUpdate]] = {
+    val request =
+      Get(s"https://${host}:${port}/api/v1/services")
+        .withHeaders(
+          Connection("Keep-Alive"),
+          Authorization(OAuth2BearerToken(Config.`service-discovery`.kubernetes.token))
+        )
+
+    Http()
+      .singleRequest(request, connectionContext)
+      .flatMap { response =>
+        Unmarshal(response.entity)
+          .to[ServiceList]
+          .map(
+            _.items.flatMap(so =>
+              so.metadata.labels
+                .flatMap(_.get("resource"))
+                .map(resource => {
+                  val ksu = KubernetesServiceUpdate(
+                    UpdateType.Addition,
+                    cleanMetadataString(so.metadata.name),
+                    cleanMetadataString(resource),
+                    cleanMetadataString(so.metadata.namespace),
+                    so.spec.ports.headOption.map(_.port).getOrElse(DEFAULT_PORT),
+                    so.metadata.labels
+                      .flatMap(_.get("secured"))
+                      .flatMap(value => Try(value.toBoolean).toOption)
+                      .getOrElse(true), // Default is secured
+                    so.metadata.annotations
+                      .flatMap(_.get("permissions"))
+                      .flatMap(value => Try(value.parseJson.convertTo[List[Permission]]).toOption)
+                      .getOrElse(Nil)
+                  )
+                  log.debug(s"Got Kubernetes service update $ksu")
+                  ksu
+                })
+            )
+          )
+      }
+  }
+
+  def listServicesOld: Future[List[KubernetesServiceUpdate]] =
     Source
       .single(req)
       .via(client)

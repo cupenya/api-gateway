@@ -49,8 +49,7 @@ class ServiceDiscoveryAgent[T <: ServiceUpdate](
 
   def watchServices(): Unit = {
     system.scheduler.schedule(1.second, SERVICE_POLLING_INTERVAL.seconds) {
-      serviceDiscoverySource
-        .listServices
+      serviceDiscoverySource.listServices
         .map { services =>
           log.debug(s"Discovered ${services.size} services.")
           services
