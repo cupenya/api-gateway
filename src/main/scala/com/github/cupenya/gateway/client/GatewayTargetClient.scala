@@ -70,7 +70,7 @@ class GatewayTargetClient(val host: String, val port: Int, secured: Boolean)(imp
     logger.debug(s"Proxying request: $proxiedRequest")
 
     Kamon
-      .counter("proxied-requests")
+      .counter("api-gateway.proxied-requests")
       .withTag("target", host)
       .increment()
 
